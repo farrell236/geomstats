@@ -1,8 +1,12 @@
 """
 Predict on SE3: losses.
 """
+
+import tensorflow as tf
+tf.enable_eager_execution()
+
 import os
-#os.environ['GEOMSTATS_BACKEND'] = 'pytorch'  # NOQA
+os.environ['GEOMSTATS_BACKEND'] = 'tensorflow'  # NOQA
 import geomstats.backend as gs
 import geomstats.lie_group as lie_group
 
@@ -88,20 +92,31 @@ def grad(y_pred, y_true,
 
         grad = gs.einsum('ni,nij->ni', grad, differential)
 
-    grad = gs.squeeze(grad, axis=0)
+    # grad = gs.squeeze(grad, axis=0)
     return grad
 
 
 def main():
-    y_pred = gs.array([1., 1.5, -0.3, 5., 6., 7.])
-    y_true = gs.array([0.1, 1.8, -0.1, 4., 5., 6.])
+    # y_pred = gs.array([1., 1.5, -0.3, 5., 6., 7.])
+    # y_true = gs.array([0.1, 1.8, -0.1, 4., 5., 6.])
 
-    loss_rot_vec = loss(y_pred, y_true)
-    grad_rot_vec = grad(y_pred, y_true)
-    print('The loss between the rotation vectors is: {}'.format(
-        loss_rot_vec[0, 0]))
-    print('The riemannian gradient is: {}'.format(
-        grad_rot_vec[0]))
+    import numpy as np
+    np.set_printoptions(linewidth=250)
+
+    y_pred = SE3.random_uniform(10)
+    y_true = SE3.random_uniform(10)
+
+    with tf.GradientTape() as g:
+        g.watch(y_pred)
+        loss_rot_vec = loss(y_pred, y_true)
+        grad_rot_vec = grad(y_pred, y_true)
+        dy_dx = g.gradient(loss_rot_vec, y_pred)
+        print('The loss between the rotation vectors is: {}'.format(
+            loss_rot_vec))
+        print('The riemannian gradient is: {}'.format(
+            grad_rot_vec))
+        print('Tensorflow calculated gradient: {}'.format(
+            dy_dx))
 
     angle = gs.pi / 6
     cos = gs.cos(angle / 2)
